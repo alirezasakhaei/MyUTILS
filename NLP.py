@@ -87,7 +87,7 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
         print('Training ...')
     for epoch in range(EPOCHS):
         if verbose:
-            print(f'Epoch: {epoch} / {EPOCHS}')
+            print(f'Epoch: {epoch+1} / {EPOCHS}')
 
         model.train()
 
