@@ -1,7 +1,6 @@
 from datasets import load_dataset
 import datasets
 import numpy as np
-
 ######################################################
 ################### BERT FineTuner ###################
 ######################################################
@@ -14,6 +13,7 @@ from torch.nn import CrossEntropyLoss
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from peft import get_peft_model, LoraConfig, TaskType
+import os
 
 
 def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, training_args=None):
@@ -25,17 +25,25 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
             'lora_alpha': 32,
             'lora_dropout': 0.1,
             'lr': 1e-3,
-            'verbose': True}
+            'verbose': True,
+            'device_map': 'cuda',
+            'save_per_epoch': True,
+            'save_path': '/content/saved_models'}
+
     verbose = ARGS['verbose']
 
-    for (key, value) in training_args:
-        ARGS[key] = value
+    if training_args is not None:
+        for (key, value) in training_args:
+            ARGS[key] = value
 
     tokenizer = AutoTokenizer.from_pretrained(model_name_on_hf)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name_on_hf, device_map='auto',
+    model = AutoModelForSequenceClassification.from_pretrained(model_name_on_hf, device_map=ARGS['device_map'],
                                                                num_labels=num_labels)
 
     if verbose:
+        print()
+        print()
+        print('-' * 30)
         print('Model and Tokenizer loaded successfully!')
 
     if ARGS['lora']:
@@ -72,36 +80,43 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
 
         return round(c / t, 3)
 
-        EPOCHS = ARGS['epochs']
+    EPOCHS = ARGS['epochs']
+    if verbose:
+        print('Training ...')
+    for epoch in range(EPOCHS):
         if verbose:
-            print('Training ...')
-        for epoch in range(EPOCHS):
-            if verbose:
-                print(f'Epoch: {epoch / EPOCHS}')
+            print(f'Epoch: {epoch} / {EPOCHS}')
 
-            model.train()
+        model.train()
 
-            loader = train_loader
-            if verbose:
-                loader = tqdm(train_loader)
-            for data in loader:
-                # tokenized = tokenize_function(data)
-                tokenized = tokenizer(data['text'], truncation=True, padding=True, return_tensors='pt')
-                input_ids = tokenized['input_ids'].to(DEVICE)
-                mask = tokenized['attention_mask'].to(DEVICE)
-                target = data['feeling'].to(DEVICE)
-                logits = model(input_ids, mask).logits
-                loss = criteria(logits, target)
+        loader = train_loader
+        if verbose:
+            loader = tqdm(train_loader)
+        for data in loader:
+            # tokenized = tokenize_function(data)
+            tokenized = tokenizer(data['text'], truncation=True, padding=True, return_tensors='pt')
+            input_ids = tokenized['input_ids'].to(DEVICE)
+            mask = tokenized['attention_mask'].to(DEVICE)
+            target = data['feeling'].to(DEVICE)
+            logits = model(input_ids, mask).logits
+            loss = criteria(logits, target)
 
-                model.zero_grad()
-                loss.backward()
-                optimizer.step()
+            model.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-            train_acc = calc_acc(model, train_loader)
-            test_acc = calc_acc(model, test_loader)
+        train_acc = calc_acc(model, train_loader)
+        test_acc = calc_acc(model, test_loader)
 
-            if verbose:
-                print(f'Train acc is {train_acc} and test acc is {test_acc}')
+        if verbose:
+            print(f'Train acc is {train_acc} and test acc is {test_acc}')
+
+        if ARGS['save_per_epoch']:
+            state_dict = model.state_dict()
+            path = ARGS['save_path']
+            path += os.sep + 'model_checkpoint_epoch' + {epoch}
+            torch.save(state_dict, path)
+
 ######################################################
 ########### Dataset Fixer For CLassification ##########
 ######################################################
