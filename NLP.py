@@ -45,7 +45,7 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
     if verbose:
         print()
         print()
-        print('-' * 30)
+        print('-'*30)
         print('Model and Tokenizer loaded successfully!')
 
     if ARGS['lora']:
@@ -115,8 +115,21 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
         if ARGS['save_per_epoch']:
             state_dict = model.state_dict()
             path = ARGS['save_path']
-            path += os.sep + 'model_checkpoint_epoch' + {epoch}
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+                if verbose:
+                    print(f"Folder '{path}' created.")
+            else:
+                if verbose:
+                    print(f"Folder '{path}' already exists.")
+
+            path += os.sep + 'model_checkpoint_epoch'+ str(epoch)
             torch.save(state_dict, path)
+            if verbose:
+                print('model saved')
+                print('-'*30)
+
 
 ######################################################
 ########### Dataset Fixer For CLassification ##########
