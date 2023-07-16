@@ -51,7 +51,8 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
             'save_per_epoch': True,
             'save_path': '/content/saved_models',
             'text_name': 'question',
-            'target_name': 'idx'}
+            'target_name': 'idx',
+            'zfill': 2}
 
     verbose = ARGS['verbose']
 
@@ -127,7 +128,7 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
                 if verbose:
                     print(f"Folder '{path}' already exists.")
 
-            path += os.sep + 'model_checkpoint_epoch' + str(epoch)
+            path += os.sep + 'model_checkpoint_epoch' + str(epoch).zfill(ARGS['zfill'])
             torch.save(state_dict, path)
             if verbose:
                 print('model saved')
