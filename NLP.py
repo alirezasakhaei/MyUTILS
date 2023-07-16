@@ -1,6 +1,18 @@
 from datasets import load_dataset
 import datasets
 import numpy as np
+
+
+######################################################
+################### BERT FineTuner ###################
+######################################################
+
+
+# Dataset must have a column called text for the
+def Finetune_BERT(model_name_on_hf, dataset, num_labels, training_args):
+    pass
+
+
 ######################################################
 ########### Dataset Fixer For CLassification ##########
 ######################################################
