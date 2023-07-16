@@ -14,7 +14,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from peft import get_peft_model, LoraConfig, TaskType
 import os
-
+from tqdm import tqdm
 
 def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, training_args=None):
     ARGS = {'epochs': 3,
@@ -28,12 +28,14 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
             'verbose': True,
             'device_map': 'cuda',
             'save_per_epoch': True,
-            'save_path': '/content/saved_models'}
+            'save_path': '/content/saved_models',
+            'text_name': 'question',
+            'target_name': 'idx'}
 
     verbose = ARGS['verbose']
 
     if training_args is not None:
-        for (key, value) in training_args:
+        for (key, value) in training_args.items():
             ARGS[key] = value
 
     tokenizer = AutoTokenizer.from_pretrained(model_name_on_hf)
@@ -67,10 +69,10 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
         t = 0
         c = 0
         for data in loader:
-            tokenized = tokenizer(data['text'], truncation=True, padding=True, return_tensors='pt')
+            tokenized = tokenizer(data[ARGS['text_name']], truncation=True, padding=True, return_tensors='pt')
             input_ids = tokenized['input_ids'].to(DEVICE)
             mask = tokenized['attention_mask'].to(DEVICE)
-            target = data['feeling'].to(DEVICE)
+            target = data[ARGS['target_name']].to(DEVICE)
             logits = model(input_ids, mask).logits
             _, selections = torch.max(logits, 1)
             num_corrects = torch.sum(selections == target).item()
@@ -93,11 +95,10 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
         if verbose:
             loader = tqdm(train_loader)
         for data in loader:
-            # tokenized = tokenize_function(data)
-            tokenized = tokenizer(data['text'], truncation=True, padding=True, return_tensors='pt')
+            tokenized = tokenizer(data[ARGS['text_name']], truncation=True, padding=True, return_tensors='pt')
             input_ids = tokenized['input_ids'].to(DEVICE)
             mask = tokenized['attention_mask'].to(DEVICE)
-            target = data['feeling'].to(DEVICE)
+            target = data[ARGS['target_name']].to(DEVICE)
             logits = model(input_ids, mask).logits
             loss = criteria(logits, target)
 
