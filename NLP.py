@@ -16,7 +16,28 @@ from peft import get_peft_model, LoraConfig, TaskType
 import os
 from tqdm import tqdm
 
-def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, training_args=None):
+
+def calc_acc(model, tokenizer, loader, ARGS):
+    model.eval()
+    DEVICE = model.device
+    t = 0
+    c = 0
+    for data in loader:
+        tokenized = tokenizer(data[ARGS['text_name']], truncation=True, padding=True, return_tensors='pt')
+        input_ids = tokenized['input_ids'].to(DEVICE)
+        mask = tokenized['attention_mask'].to(DEVICE)
+        target = data[ARGS['target_name']].to(DEVICE)
+        logits = model(input_ids, mask).logits
+        _, selections = torch.max(logits, 1)
+        num_corrects = torch.sum(selections == target).item()
+
+        c += num_corrects
+        t += target.shape[0]
+
+    return round(c / t, 3)
+
+
+def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, num_labels=2, training_args=None):
     ARGS = {'epochs': 3,
             'train_batch_size': 16,
             'test_batch_size': 16,
@@ -45,7 +66,7 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
     if verbose:
         print()
         print()
-        print('-'*30)
+        print('-' * 30)
         print('Model and Tokenizer loaded successfully!')
 
     if ARGS['lora']:
@@ -64,30 +85,12 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
     optimizer = optim.AdamW(model.parameters(), lr=ARGS['lr'])
     criteria = CrossEntropyLoss()
 
-    def calc_acc(model, loader):
-        model.eval()
-        t = 0
-        c = 0
-        for data in loader:
-            tokenized = tokenizer(data[ARGS['text_name']], truncation=True, padding=True, return_tensors='pt')
-            input_ids = tokenized['input_ids'].to(DEVICE)
-            mask = tokenized['attention_mask'].to(DEVICE)
-            target = data[ARGS['target_name']].to(DEVICE)
-            logits = model(input_ids, mask).logits
-            _, selections = torch.max(logits, 1)
-            num_corrects = torch.sum(selections == target).item()
-
-            c += num_corrects
-            t += target.shape[0]
-
-        return round(c / t, 3)
-
     EPOCHS = ARGS['epochs']
     if verbose:
         print('Training ...')
     for epoch in range(EPOCHS):
         if verbose:
-            print(f'Epoch: {epoch+1} / {EPOCHS}')
+            print(f'Epoch: {epoch + 1} / {EPOCHS}')
 
         model.train()
 
@@ -106,8 +109,8 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
             loss.backward()
             optimizer.step()
 
-        train_acc = calc_acc(model, train_loader)
-        test_acc = calc_acc(model, test_loader)
+        train_acc = calc_acc(model, tokenizer, train_loader, ARGS)
+        test_acc = calc_acc(model, tokenizer, test_loader, ARGS)
 
         if verbose:
             print(f'Train acc is {train_acc} and test acc is {test_acc}')
@@ -124,12 +127,11 @@ def Finetune_BERT(model_name_on_hf, train_dataset, test_dataset, num_labels=2, t
                 if verbose:
                     print(f"Folder '{path}' already exists.")
 
-            path += os.sep + 'model_checkpoint_epoch'+ str(epoch)
+            path += os.sep + 'model_checkpoint_epoch' + str(epoch)
             torch.save(state_dict, path)
             if verbose:
                 print('model saved')
-                print('-'*30)
-
+                print('-' * 30)
 
 ######################################################
 ########### Dataset Fixer For CLassification ##########
