@@ -133,10 +133,3 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
             if verbose:
                 print('model saved')
                 print('-' * 30)
-
-######################################################
-########### Dataset Fixer For CLassification ##########
-######################################################
-
-
-
