@@ -52,7 +52,9 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
             'save_path': '/content/saved_models',
             'text_name': 'question',
             'target_name': 'idx',
-            'zfill': 2}
+            'zfill': 2,
+            'return_model': True,
+            'return_accs': True}
 
     verbose = ARGS['verbose']
 
@@ -86,6 +88,10 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
     optimizer = optim.AdamW(model.parameters(), lr=ARGS['lr'])
     criteria = CrossEntropyLoss()
 
+    if ARGS['return_accs']:
+        train_accs = []
+        test_accs = []
+
     EPOCHS = ARGS['epochs']
     if verbose:
         print('Training ...')
@@ -112,6 +118,9 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
 
         train_acc = calc_acc(model, tokenizer, train_loader, ARGS)
         test_acc = calc_acc(model, tokenizer, test_loader, ARGS)
+        if ARGS['return_accs']:
+            train_accs.append(train_acc)
+            test_accs.append(test_acc)
 
         if verbose:
             print(f'Train acc is {train_acc} and test acc is {test_acc}')
@@ -133,3 +142,11 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
             if verbose:
                 print('model saved')
                 print('-' * 30)
+
+    RETURNS = {}
+    if ARGS['return_model']:
+        RETURNS['model'] = model
+    if ARGS['return_accs']:
+        RETURNS['train_acc'] = train_accs
+        RETURNS['test_acc'] = test_accs
+    return RETURNS
