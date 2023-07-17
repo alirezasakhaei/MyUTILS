@@ -54,7 +54,8 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
             'target_name': 'idx',
             'zfill': 2,
             'return_model': True,
-            'return_accs': True}
+            'return_accs': True
+            }
 
     verbose = ARGS['verbose']
 
@@ -150,3 +151,16 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
         RETURNS['train_acc'] = train_accs
         RETURNS['test_acc'] = test_accs
     return RETURNS
+
+
+
+if __name__ == '__main__':
+    model_name = 'bert-base-cased'
+    dataset = load_dataset("carblacac/twitter-sentiment-analysis")
+    train_dataset = dataset['train']
+    test_dataset = dataset['test']
+    args = {
+        'text_name': 'text',
+        'target_name': 'feeling'
+    }
+    Finetune_for_classification(model_name, train_dataset, test_dataset, num_labels=2, training_args=args)
