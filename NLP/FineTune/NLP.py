@@ -1,12 +1,6 @@
 from datasets import load_dataset
 import datasets
 import numpy as np
-######################################################
-################### BERT FineTuner ###################
-######################################################
-
-
-# Dataset must have a column called text for the
 from torch.utils.data import DataLoader
 from torch import optim
 from torch.nn import CrossEntropyLoss
@@ -17,6 +11,9 @@ import os
 from tqdm import tqdm
 
 
+######################################################
+################### BERT FineTuner ###################
+######################################################
 def calc_acc(model, tokenizer, loader, ARGS):
     model.eval()
     DEVICE = model.device
@@ -151,7 +148,6 @@ def Finetune_for_classification(model_name_on_hf, train_dataset, test_dataset, n
         RETURNS['train_acc'] = train_accs
         RETURNS['test_acc'] = test_accs
     return RETURNS
-
 
 
 if __name__ == '__main__':
